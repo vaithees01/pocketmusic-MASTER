@@ -1,0 +1,39 @@
+import pyaudio
+import numpy
+import librosa
+
+# Constants 
+CHUNK_SIZE = 2048  # Size of each audio chunk for analysis
+FORMAT = pyaudio.paInt16
+CHANNELS = 1
+RATE = 22050 # Sample rate (you may need to adjust this)
+NOTE_NAMES =     ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+
+# Initialize audio input stream
+p = pyaudio.PyAudio()
+stream = p.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK_SIZE)
+
+while True:
+    try:
+        # Read audio data from the stream
+        audio_data = numpy.frombuffer(stream.read(CHUNK_SIZE), dtype=numpy.int16)
+        
+        # Convert audio data to floating-point format
+        audio_data = audio_data.astype(numpy.float32) / 32768.0
+
+        # Compute the FFT and find the most prominent note
+        chroma = librosa.feature.chroma_stft(y=audio_data, sr=RATE)
+        
+        # Wrap the index to ensure it's within the range of 0 to 11
+        note_index = chroma.argmax() % 12
+        note = NOTE_NAMES[note_index]
+
+        print("Recognized note:", note)
+
+    except KeyboardInterrupt:
+        break
+
+# Cleanup
+stream.stop_stream()
+stream.close()
+p.terminate()
